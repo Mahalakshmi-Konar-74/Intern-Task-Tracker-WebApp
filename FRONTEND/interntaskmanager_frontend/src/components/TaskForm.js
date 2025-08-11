@@ -1,44 +1,71 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 
-export default function Dashboard() {
-  const [tasks, setTasks] = useState([]);
-  const [filter, setFilter] = useState("");
+export default function TaskForm({ fetchTasks }) {
+  const [taskName, setTaskName] = useState('');
+  const [status, setStatus] = useState('pending');
 
-  useEffect(() => {
-    fetchTasks();
-  }, [filter]);
-
-  const fetchTasks = async () => {
+  const addTask = async () => {
     try {
-      let res = await axios.get('http://127.0.0.1:8000/api/tasks/', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      let data = res.data;
-      if (filter) {
-        data = data.filter(t => t.status === filter);
-      }
-      setTasks(data);
-    } catch {
-      alert("Failed to load tasks!");
+      await axios.post(
+        'http://127.0.0.1:8000/api/data/Tasks/',
+        {
+          task_name: taskName,
+          status: status
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      fetchTasks();
+      setTaskName('');
+      setStatus('pending');
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      alert('Failed to add task!');
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await axios.delete(
+        `http://127.0.0.1:8000/api/data/Tasks/${id}/`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      fetchTasks();
+    } catch (err) {
+      console.error(err.response?.data || err.message);
+      alert('Failed to delete task!');
     }
   };
 
   return (
-    <div>
-      <h2>Dashboard</h2>
-      <select className="form-control mb-2" onChange={e => setFilter(e.target.value)}>
-        <option value="">All</option>
-        <option value="completed">Completed</option>
+    <div className="card p-3">
+      <h5>Add Task</h5>
+      <input
+        className="form-control mb-2"
+        placeholder="Task Name"
+        value={taskName}
+        onChange={(e) => setTaskName(e.target.value)}
+      />
+      <select
+        className="form-control mb-2"
+        value={status}
+        onChange={(e) => setStatus(e.target.value)}
+      >
         <option value="pending">Pending</option>
+        <option value="completed">Completed</option>
       </select>
-      <ul className="list-group">
-        {tasks.map(task => (
-          <li className="list-group-item" key={task.id}>
-            {task.title} - {task.status}
-          </li>
-        ))}
-      </ul>
+      <button className="btn btn-primary" onClick={addTask}>
+        Add
+      </button>
+
     </div>
   );
 }
